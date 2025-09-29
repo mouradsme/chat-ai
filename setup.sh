@@ -13,7 +13,7 @@ sudo apt update && sudo apt upgrade -y
 
 # Install system dependencies
 echo "🔧 Installing system dependencies..."
-sudo apt install -y software-properties-common curl wget unzip git supervisor nginx
+sudo apt install -y software-properties-common curl wget unzip git supervisor nginx build-essential make gcc
 
 # Install PHP 8.3 and extensions
 echo "🐘 Installing PHP 8.3..."

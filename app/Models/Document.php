@@ -6,38 +6,30 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
+use App\Services\PgVectorService;
 
 class Document extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'chatbot_id',
         'filename',
         'chunk_text',
         'chunk_index',
-        'token_count',
-        'embedding',
+        'token_count'
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'chatbot_id' => 'integer',
         'chunk_index' => 'integer',
         'token_count' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
 
     /**
-     * Get the chatbot that owns the document.
+     * Get the chatbot that owns this document.
      */
     public function chatbot(): BelongsTo
     {
@@ -45,67 +37,67 @@ class Document extends Model
     }
 
     /**
-     * Set the embedding attribute.
-     * Converts array to PostgreSQL vector format.
+     * Set the embedding vector.
      */
-    public function setEmbeddingAttribute($value)
+    public function setEmbedding(array $embedding): void
     {
-        if (is_array($value)) {
-            $this->attributes['embedding'] = '[' . implode(',', $value) . ']';
-        } else {
-            $this->attributes['embedding'] = $value;
-        }
+        $vectorString = PgVectorService::arrayToVector($embedding);
+        DB::table('documents')
+            ->where('id', $this->id)
+            ->update(['embedding' => DB::raw("'{$vectorString}'::vector")]);
     }
 
     /**
-     * Get the embedding attribute.
-     * Converts PostgreSQL vector format to array.
+     * Get the embedding vector as array.
      */
-    public function getEmbeddingAttribute($value)
+    public function getEmbedding(): ?array
     {
-        if (is_string($value) && str_starts_with($value, '[') && str_ends_with($value, ']')) {
-            return json_decode($value);
+        $result = DB::table('documents')
+            ->select('embedding')
+            ->where('id', $this->id)
+            ->first();
+
+        if (!$result || !$result->embedding) {
+            return null;
         }
-        return $value;
+
+        return PgVectorService::vectorToArray($result->embedding);
     }
 
     /**
-     * Find similar documents using cosine similarity.
-     *
-     * @param array $queryEmbedding
-     * @param int $limit
-     * @param float $threshold
-     * @return \Illuminate\Database\Eloquent\Collection
+     * Find similar documents using pgvector cosine similarity.
      */
-    public function scopeSimilarTo($query, array $queryEmbedding, int $limit = 3, float $threshold = 0.7)
-    {
-        $embeddingString = '[' . implode(',', $queryEmbedding) . ']';
+    public static function findSimilar(
+        array $queryEmbedding,
+        int $limit = 10,
+        float $threshold = 0.7
+    ) {
+        $vectorString = PgVectorService::arrayToVector($queryEmbedding);
         
-        return $query->select('*')
-            ->selectRaw('1 - (embedding <=> ?) as similarity', [$embeddingString])
-            ->whereRaw('1 - (embedding <=> ?) > ?', [$embeddingString, $threshold])
-            ->orderByRaw('embedding <=> ?', [$embeddingString])
-            ->limit($limit);
+        return DB::table('documents')
+            ->selectRaw('documents.*, (1 - (embedding <=> ?::vector)) as similarity', [$vectorString])
+            ->whereRaw('(1 - (embedding <=> ?::vector)) >= ?', [$vectorString, $threshold])
+            ->orderByRaw('embedding <=> ?::vector', [$vectorString])
+            ->limit($limit)
+            ->get();
     }
 
     /**
      * Find similar documents for a specific chatbot.
-     *
-     * @param int $chatbotId
-     * @param array $queryEmbedding
-     * @param int $limit
-     * @param float $threshold
-     * @return \Illuminate\Database\Eloquent\Collection
      */
-    public static function findSimilarForChatbot(int $chatbotId, array $queryEmbedding, int $limit = 3, float $threshold = 0.7)
-    {
-        $embeddingString = '[' . implode(',', $queryEmbedding) . ']';
+    public static function findSimilarForChatbot(
+        int $chatbotId,
+        array $queryEmbedding,
+        int $limit = 10,
+        float $threshold = 0.7
+    ) {
+        $vectorString = PgVectorService::arrayToVector($queryEmbedding);
         
-        return self::where('chatbot_id', $chatbotId)
-            ->select('*')
-            ->selectRaw('1 - (embedding <=> ?) as similarity', [$embeddingString])
-            ->whereRaw('1 - (embedding <=> ?) > ?', [$embeddingString, $threshold])
-            ->orderByRaw('embedding <=> ?', [$embeddingString])
+        return DB::table('documents')
+            ->selectRaw('documents.*, (1 - (embedding <=> ?::vector)) as similarity', [$vectorString])
+            ->where('chatbot_id', $chatbotId)
+            ->whereRaw('(1 - (embedding <=> ?::vector)) >= ?', [$vectorString, $threshold])
+            ->orderByRaw('embedding <=> ?::vector', [$vectorString])
             ->limit($limit)
             ->get();
     }
