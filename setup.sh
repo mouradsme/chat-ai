@@ -39,6 +39,8 @@ sudo apt install -y postgresql postgresql-contrib postgresql-server-dev-all
 # Install pgvector extension
 echo "🔍 Installing pgvector extension..."
 cd /tmp
+# Remove existing directory if it exists
+rm -rf pgvector
 git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git
 cd pgvector
 make
