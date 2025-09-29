@@ -48,10 +48,13 @@ sudo make install
 
 # Configure PostgreSQL
 echo "🔧 Configuring PostgreSQL..."
+# Drop database if it exists and recreate it
+sudo -u postgres psql -c "DROP DATABASE IF EXISTS chatbot_platform;"
+sudo -u postgres psql -c "DROP USER IF EXISTS chatbot_user;"
 sudo -u postgres psql -c "CREATE DATABASE chatbot_platform;"
 sudo -u postgres psql -c "CREATE USER chatbot_user WITH PASSWORD 'chatbot_password';"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE chatbot_platform TO chatbot_user;"
-sudo -u postgres psql -d chatbot_platform -c "CREATE EXTENSION vector;"
+sudo -u postgres psql -d chatbot_platform -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
 # Install Ollama
 echo "🤖 Installing Ollama..."
@@ -112,7 +115,7 @@ echo "" >> .env
 echo "# Ollama Configuration" >> .env
 echo "OLLAMA_BASE_URL=http://localhost:11434" >> .env
 echo "OLLAMA_MODEL=mistral:7b" >> .env
-echo "OLLAMA_EMBED_MODEL=mistral:7b-embed" >> .env
+echo "OLLAMA_EMBED_MODEL=nomic-embed-text" >> .env
 
 echo "✅ Setup completed successfully!"
 echo ""
