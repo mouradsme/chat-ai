@@ -83,12 +83,11 @@ sudo chown -R $USER:$USER /var/www/chatbot-platform
 # Install Laravel
 echo "🎨 Installing Laravel..."
 cd /var/www/chatbot-platform
-composer create-project laravel/laravel . --prefer-dist
+COMPOSER_ALLOW_SUPERUSER=1 composer create-project laravel/laravel . --prefer-dist
 
 # Install additional Laravel packages
 echo "📦 Installing additional packages..."
-composer require spatie/pdf-to-text
-composer require pgvector/pgvector-php
+COMPOSER_ALLOW_SUPERUSER=1 composer require spatie/pdf-to-text
 
 # Set proper permissions
 echo "🔐 Setting proper permissions..."
