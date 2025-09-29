@@ -69,7 +69,8 @@ sleep 10
 # Pull required models
 echo "📥 Pulling Ollama models..."
 ollama pull mistral:7b
-ollama pull mistral:7b-embed
+# Use the correct embedding model name
+ollama pull nomic-embed-text
 
 # Create Laravel project directory
 echo "📁 Creating Laravel project directory..."

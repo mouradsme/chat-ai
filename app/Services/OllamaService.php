@@ -16,7 +16,7 @@ class OllamaService
     {
         $this->baseUrl = config('app.ollama_base_url', env('OLLAMA_BASE_URL', 'http://localhost:11434'));
         $this->model = config('app.ollama_model', env('OLLAMA_MODEL', 'mistral:7b'));
-        $this->embedModel = config('app.ollama_embed_model', env('OLLAMA_EMBED_MODEL', 'mistral:7b-embed'));
+        $this->embedModel = config('app.ollama_embed_model', env('OLLAMA_EMBED_MODEL', 'nomic-embed-text'));
     }
 
     /**
